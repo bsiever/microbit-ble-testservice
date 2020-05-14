@@ -357,13 +357,19 @@ void MicroBitBLEManager::init(ManagedString deviceName, ManagedString serialNumb
     ble->setPreferredConnectionParams(&fast);
 
     // Setup advertising.
+    ble->clearAdvertisingPayload();  // BSIEVER: Clear initially...
 #if CONFIG_ENABLED(MICROBIT_BLE_WHITELIST)
     ble->accumulateAdvertisingPayload(GapAdvertisingData::BREDR_NOT_SUPPORTED);
 #else
     ble->accumulateAdvertisingPayload(GapAdvertisingData::BREDR_NOT_SUPPORTED | GapAdvertisingData::LE_GENERAL_DISCOVERABLE);
 #endif
 
-    ble->accumulateAdvertisingPayload(GapAdvertisingData::COMPLETE_LOCAL_NAME, (uint8_t *)BLEName.toCharArray(), BLEName.length());
+    // BSIEVER: Updated advertising...
+    UUID serviceUUID("1d93af38-9239-11ea-bb37-0242ac130002", true);
+    ble->accumulateAdvertisingPayload(GapAdvertisingData::INCOMPLETE_LIST_128BIT_SERVICE_IDS, serviceUUID.getBaseUUID(), 128/8);
+
+//    ble->accumulateAdvertisingPayload(GapAdvertisingData::COMPLETE_LOCAL_NAME, (uint8_t *)BLEName.toCharArray(), BLEName.length());
+    ble->setDeviceName( (uint8_t *)BLEName.toCharArray());
     ble->setAdvertisingType(GapAdvertisingParams::ADV_CONNECTABLE_UNDIRECTED);
     ble->setAdvertisingInterval(200);
 
@@ -502,6 +508,7 @@ void MicroBitBLEManager::pairingMode(MicroBitDisplay& display, MicroBitButton& a
     ble->clearAdvertisingPayload();
 
     ble->accumulateAdvertisingPayload(GapAdvertisingData::BREDR_NOT_SUPPORTED | GapAdvertisingData::LE_GENERAL_DISCOVERABLE);
+
     ble->accumulateAdvertisingPayload(GapAdvertisingData::COMPLETE_LOCAL_NAME, (uint8_t *)BLEName.toCharArray(), BLEName.length());
     ble->setAdvertisingType(GapAdvertisingParams::ADV_CONNECTABLE_UNDIRECTED);
     ble->setAdvertisingInterval(200);

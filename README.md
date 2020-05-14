@@ -1,5 +1,10 @@
 # microbit-ble-testservice
-Micro:bit Bluetooth Test Service project for Platform IO
+
+Micro:bit Bluetooth Test Service project for the micro:bit (and compiled on Platform IO)
+
+The service can be used to test BLE libraries on different platforms.  
+
+
 
 Modified Files to build test services and devices using Micro:bits
 
@@ -16,6 +21,5 @@ Misc. Notes:
   * Bluetooth options are in `mbed_app.json`
   * `platformio.ini` specifies baud rage / etc.
   * `.hex` file will be built  in `.pio/build/bbcmicrobit`
-  * Added a `build_flags = -D NDEBUG` in `platformio.ini` due to weird crashes. 
-  
-Added `src/BLETestServie.cpp` and `src/BLETestService.h` for the test service.
+  * Currently requires older version of PlatformIO's nordicnrf51 library (3.0.1; newer versions seem to have compatibility problems, probably due to use of newer and incompatible mbed versions)
+* Added `src/BLETestService.cpp` and `src/BLETestService.h` for the test service.

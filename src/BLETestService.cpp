@@ -3,26 +3,70 @@
   * Class definition for the custom MicroBit Button Service.
   * Provides a BLE service to remotely read the state of each button, and configure its behaviour.
   */
-#include "MicroBitConfig.h"
-#include "ble/UUID.h"  // BSIEVER: UUID class was modified to return LSB first for long UUIDs
 
 #include "BLETestService.h"
 
 
 /*
 UUIDs: Type 1 generated from https://www.uuidgenerator.net/ ~4:15pm CDT MAy 9th, 2020
-Service:  
-    1d93af38-9239-11ea-bb37-0242ac130002
 
-Read Data: 
-    1d93b2f8-9239-11ea-bb37-0242ac130002:  Conatins lower case english alphabet: "abcdefghijklmnopqrstuvwxyz"  (26 bytes)
+Advertising: 
 
-1d93b488-9239-11ea-bb37-0242ac130002
-1d93b56e-9239-11ea-bb37-0242ac130002
-1d93b636-9239-11ea-bb37-0242ac130002
-1d93b6fe-9239-11ea-bb37-0242ac130002
-1d93b7c6-9239-11ea-bb37-0242ac130002
-1d93b884-9239-11ea-bb37-0242ac130002
+
+Service:  1d93af38-9239-11ea-bb37-0242ac130002
+Characteristics: 
+
+Reads & Writes 
+ 
+R = Read; 
+Wn = Write without response
+Wr = Write with response (ack if less than limit; Nack if over limit)
+
+| Props | Short desc | UUID | Long Description |
+|-------|------------|------|------------------|
+| R     |  Data Short    | 1d93b2f8-9239-11ea-bb37-0242ac130002 |  Contains ASCII digits 0-9: "0123456789"  (10 bytes) | 
+| R     |  Data Packet   | 1d93b488-9239-11ea-bb37-0242ac130002 | Contains 20 bytes:"abcdefghijklmnopqrst" (full BLE packet) |
+| R     |  Data Long     | 1d93b56e-9239-11ea-bb37-0242ac130002 | Contains 62 bytes: "abcdefghijklmnopqrstuvwzyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789" (multiple packets) |
+| RWn    | Short R/Wn Data  | 1d93b636-9239-11ea-bb37-0242ac130002 | For testing writes up to 20 bytes (readback to confirm) (mbed doesn't do long writes)|
+| RWr    | Short R/W Data  | 1d93b942-9239-11ea-bb37-0242ac130002 | For testing writes up to 20 bytes (readback to confirm) (mbed doesn't do long writes)|
+
+Write w/ Response
+
+Notifications
+Indications
+
+Read / Write Descriptors
+
+Long writes?
+
+
+
+Client disconnect (clean / requested)
+Client disconnect (reboot / abrupt)
+
+Misc Advertising:
+Scan with name 
+Scan with UUID
+
+| R |  | 1d93b6fe-9239-11ea-bb37-0242ac130002 |  Checksum and size (bytes) of above |
+| RW |  | 1d93b7c6-9239-11ea-bb37-0242ac130002 | For testing reads & writes up to 100 bytes|
+| R | | 1d93b884-9239-11ea-bb37-0242ac130002 | Checksum and size (bytes) of above |
+
+
+
+Reference: https://www.oreilly.com/library/view/getting-started-with/9781491900550/ch04.html
+
+
+Write with response? 
+Notify?
+Indicate? 
+Signed Write? 
+Queued Write? 
+Writeable Auxiliries ? 
+Force disconnect? 
+
+
+
 1d93b942-9239-11ea-bb37-0242ac130002
 1d93bb2c-9239-11ea-bb37-0242ac130002
 1d93bbea-9239-11ea-bb37-0242ac130002
@@ -57,6 +101,29 @@ Read Data:
 1d93c432-9239-11ea-bb37-0242ac130002
 */
 
+
+
+
+
+void BLETestService::onDataWritten(const GattWriteCallbackParams *params) {
+#ifdef DEBUG
+    uBit.serial.printf("Data Written......\n");
+#endif 
+    if (params->handle == rwrChar->getValueAttribute().getHandle()) {
+        /* Do something here if the new value is 1; else you can override this method by
+          * extending this class.
+          * @NOTE: If you are extending this class, be sure to also call
+          * ble.onDataWritten(this, &ExtendedHRService::onDataWritten); in
+          * your constructor.
+          */
+#ifdef DEBUG
+    uBit.serial.printf("RWR Char......\n");
+#endif 
+    }
+}
+
+
+
 /**
   * Constructor.
   * Create a representation of the BLETestService
@@ -65,25 +132,38 @@ Read Data:
 BLETestService::BLETestService(BLEDevice &_ble) :
         ble(_ble)
 {
+#ifdef DEBUG
+    uBit.serial.printf("BLETestService Constructor\n");
+#endif
+
     UUID serviceUUID("1d93af38-9239-11ea-bb37-0242ac130002");
-    UUID readDataUUID("1d93b2f8-9239-11ea-bb37-0242ac130002");
-    // Create the data structures that represent each of our characteristics in Soft Device.
-    GattCharacteristic  readCharacteristic(
-                                readDataUUID.getBaseUUID(), 
-                                (uint8_t *)"abcdefghijklmnopqrstuvwxyz", 
-                                26,
-                                26, 
-                                GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_READ);
+
+    GattCharacteristic  readShortChar( UUID("1d93b2f8-9239-11ea-bb37-0242ac130002").getBaseUUID(), 
+                                            (uint8_t *)"0123456789", 10, 10, 
+                                            GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_READ);
+
+    GattCharacteristic  readPacketChar( UUID("1d93b488-9239-11ea-bb37-0242ac130002").getBaseUUID(), 
+                                            (uint8_t *)"abcdefghijklmnopqrst", 20, 20, 
+                                            GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_READ);
+
+    GattCharacteristic  readLongUUIDChar( UUID("1d93b56e-9239-11ea-bb37-0242ac130002").getBaseUUID(), 
+                                            (uint8_t *)"abcdefghijklmnopqrstuvwzyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789", 62, 62, 
+                                            GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_READ);
+
+    GattCharacteristic  rwnChar( UUID("1d93b636-9239-11ea-bb37-0242ac130002").getBaseUUID(), 
+                                              (uint8_t *)"-", 1, 20, 
+                                              GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_READ | GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_WRITE_WITHOUT_RESPONSE);
 
 
+   GattCharacteristic rwrChar(UUID("1d93b942-9239-11ea-bb37-0242ac130002").getBaseUUID(), 
+                                              (uint8_t *)"-", 1, 20, 
+                                              GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_READ | GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_WRITE);
 
-    GattCharacteristic *characteristics[] = {&readCharacteristic};
+
+    GattCharacteristic *characteristics[] = {&readShortChar, &readPacketChar, &readLongUUIDChar, &rwnChar, &rwrChar};
     GattService         service(serviceUUID.getBaseUUID(), characteristics, sizeof(characteristics) / sizeof(GattCharacteristic *));
+  //  ble.onDataWritten(this, &BLETestService::onDataWritten);
 
     ble.addService(service);
-
-    readDataCharacteristicHandle = readCharacteristic.getValueHandle();
-
-    ble.gattServer().write(readDataCharacteristicHandle,(uint8_t *)"abcdefghijklmnopqrstuvwxyz", 26);
 }
 

@@ -5,7 +5,14 @@
 #include "MicroBitConfig.h"
 #include "ble/BLE.h"
 #include "EventModel.h"
+#include "ble/UUID.h"  // BSIEVER: UUID class was modified to return LSB first for long UUIDs
 
+#define DEBUG 1
+
+#ifdef DEBUG
+#include "MicroBit.h"
+extern MicroBit uBit;
+#endif
 
 /**
   * Class definition for a MicroBit BLE Button Service.
@@ -28,8 +35,10 @@ class BLETestService
     // Bluetooth stack we're running on.
     BLEDevice           &ble;
 
-    // Handles to access each characteristic when they are held by Soft Device.
-    GattAttribute::Handle_t readDataCharacteristicHandle;
+    // Misc event handlers
+    void onDataWritten(const GattWriteCallbackParams *params);
+    //GattCharacteristic *rwrChar;
+//    void rwAuthCallback(GattReadAuthCallbackParams *);
 };
 
 

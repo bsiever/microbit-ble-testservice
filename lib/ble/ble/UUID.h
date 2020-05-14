@@ -77,7 +77,7 @@ public:
      *          upto four of them. The UUID is stored internally as a 16 byte
      *          array, LSB (little endian), which is opposite from the string.
      */
-    UUID(const char* stringUUID) : type(UUID_TYPE_LONG), baseUUID(), shortUUID(0) {
+    UUID(const char* stringUUID, bool reversed = false) : type(UUID_TYPE_LONG), baseUUID(), shortUUID(0) {
         bool nibble = false;
         uint8_t byte = 0;
         size_t baseIndex = 0;
@@ -109,11 +109,11 @@ public:
         // BSIEVER: Updated to LSB first (for Microbit / testing)
         // populate internal variables if string was successfully parsed
         if (baseIndex == LENGTH_OF_LONG_UUID) {
-            setupLong(tempUUID, UUID::LSB);
+            setupLong(tempUUID, reversed ? UUID::MSB : UUID::LSB);
         } else {
             const uint8_t sig[] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x10, 0x00,
                                     0x80, 0x00, 0x00, 0x80, 0x5F, 0x9B, 0x34, 0xFB };
-            setupLong(sig, UUID::LSB);
+            setupLong(sig, reversed ? UUID::MSB : UUID::LSB);
         }
     }
 
