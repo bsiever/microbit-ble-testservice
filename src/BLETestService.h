@@ -29,6 +29,7 @@ class BLETestService
       */
     BLETestService(BLEDevice &_ble);
 
+    void run(); 
 
     private:
 
@@ -37,8 +38,7 @@ class BLETestService
 
     // Misc event handlers
     void onDataWritten(const GattWriteCallbackParams *params);
-    //GattCharacteristic *rwrChar;
-//    void rwAuthCallback(GattReadAuthCallbackParams *);
+    static void _monitorFiber(void *service);
 };
 
 

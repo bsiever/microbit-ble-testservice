@@ -8,7 +8,7 @@
 
 
 /*
-UUIDs: Type 1 generated from https://www.uuidgenerator.net/ ~4:15pm CDT MAy 9th, 2020
+UUIDs: Type 1 generated from https://www.uuidgenerator.net/ ~4:15pm CDT May 9th, 2020
 
 Advertising: 
 
@@ -21,16 +21,26 @@ Reads & Writes
 R = Read; 
 Wn = Write without response
 Wr = Write with response (ack if less than limit; Nack if over limit)
+N = Notifiable
+I = Indicatable
 
 | Props | Short desc | UUID | Long Description |
 |-------|------------|------|------------------|
 | R     |  Data Short    | 1d93b2f8-9239-11ea-bb37-0242ac130002 |  Contains ASCII digits 0-9: "0123456789"  (10 bytes) | 
 | R     |  Data Packet   | 1d93b488-9239-11ea-bb37-0242ac130002 | Contains 20 bytes:"abcdefghijklmnopqrst" (full BLE packet) |
 | R     |  Data Long     | 1d93b56e-9239-11ea-bb37-0242ac130002 | Contains 62 bytes: "abcdefghijklmnopqrstuvwzyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789" (multiple packets) |
-| RWn    | Short R/Wn Data  | 1d93b636-9239-11ea-bb37-0242ac130002 | For testing writes up to 20 bytes (readback to confirm) (mbed doesn't do long writes)|
-| RWr    | Short R/W Data  | 1d93b942-9239-11ea-bb37-0242ac130002 | For testing writes up to 20 bytes (readback to confirm) (mbed doesn't do long writes)|
-
+| RWn    | Short R/Wn Data  | 1d93b636-9239-11ea-bb37-0242ac130002 | For testing writes up to 100 bytes (readback to confirm) (mbed doesn't do long writes)|
+| RWr    | Short R/W Data  | 1d93b942-9239-11ea-bb37-0242ac130002 | For testing writes up to 100 bytes (readback to confirm) (mbed doesn't do long writes)|
 | RWn    | Short R Data  | 1d93b942-9239-11ea-bb37-0242ac130002 | Only 1 byte of data ("-"); For testing Descriptors  ; |
+| RWr | Notifiable counter1 period | 1d93b942-9239-11ea-bb37-0242ac130002 | 4 byte value in ms indicating the period of updated to the notifications of counter 1; 500ms initially|
+| N | Notifiable counter1 | 1d93bb2c-9239-11ea-bb37-0242ac130002| 2 byte counter; Starts at 1 on enable and counts up |
+| RWr | Notifiable counter2 period | 1d93bbea-9239-11ea-bb37-0242ac130002 | 4 byte value in ms indicating the period of updated to the notifications of counter 1; 500ms initially|
+| N | Notifiable counter2 | 1d93bc9e-9239-11ea-bb37-0242ac130002| 2 byte counter; Starts at 1 on enable and counts up |
+| RWr | Indicatable counter1 period | 1d93bd52-9239-11ea-bb37-0242ac130002 | 4 byte value in ms indicating the period of updated to the notifications of counter 1; 500ms initially|
+| N | Indicatable counter1 | 1d93be06-9239-11ea-bb37-0242ac130002| 2 byte counter; Starts at 1 on enable and counts up |
+| RWr | Indicatable counter2 period | 1d93bec4-9239-11ea-bb37-0242ac130002 | 4 byte value in ms indicating the period of updated to the notifications of counter 1; 500ms initially|
+| N | Indicatable counter2 | 1d93bf82-9239-11ea-bb37-0242ac130002| 2 byte counter; Starts at 1 on enable and counts up |
+
 
 
 
@@ -72,14 +82,6 @@ Force disconnect?
 
 
 
-1d93b942-9239-11ea-bb37-0242ac130002
-1d93bb2c-9239-11ea-bb37-0242ac130002
-1d93bbea-9239-11ea-bb37-0242ac130002
-1d93bc9e-9239-11ea-bb37-0242ac130002
-1d93bd52-9239-11ea-bb37-0242ac130002
-1d93be06-9239-11ea-bb37-0242ac130002
-1d93bec4-9239-11ea-bb37-0242ac130002
-1d93bf82-9239-11ea-bb37-0242ac130002
 1d93c1e4-9239-11ea-bb37-0242ac130002
 1d93c2c0-9239-11ea-bb37-0242ac130002
 1d93c374-9239-11ea-bb37-0242ac130002
@@ -108,25 +110,72 @@ Force disconnect?
 
 
 
+typedef struct  {
+  const char* periodUUID;
+  const char* updateUUID;
+  GattCharacteristic::Properties_t props; 
+} timer_def;
 
+static const timer_def timer_defs[] = {
+  {"1d93b942-9239-11ea-bb37-0242ac130002", "1d93bb2c-9239-11ea-bb37-0242ac130002", GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_NOTIFY},
+  {"1d93bbea-9239-11ea-bb37-0242ac130002", "1d93bc9e-9239-11ea-bb37-0242ac130002", GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_NOTIFY},
+  {"1d93bd52-9239-11ea-bb37-0242ac130002", "1d93be06-9239-11ea-bb37-0242ac130002", GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_INDICATE},
+  {"1d93bec4-9239-11ea-bb37-0242ac130002", "1d93bf82-9239-11ea-bb37-0242ac130002", GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_INDICATE}
+};
+
+static const int numTimers = sizeof(timer_defs)/sizeof(timer_def);
+
+// Not very OOP, but I'm assuming this service is a singleton
+static GattAttribute::Handle_t timerPeriodHandles[numTimers];
+static GattAttribute::Handle_t timerUpdateHandles[numTimers];
+
+static uint32_t timerLastUpdate[numTimers] = {0};
+static uint16_t timerCounts[numTimers] = {0};
 
 void BLETestService::onDataWritten(const GattWriteCallbackParams *params) {
 #ifdef DEBUG
-    uBit.serial.printf("Data Written......\n");
+    uBit.serial.printf("Data Written to handle: %x\n", params->handle);
 #endif 
-//     if (params->handle == rwrChar->getValueAttribute().getHandle()) {
-//         /* Do something here if the new value is 1; else you can override this method by
-//           * extending this class.
-//           * @NOTE: If you are extending this class, be sure to also call
-//           * ble.onDataWritten(this, &ExtendedHRService::onDataWritten); in
-//           * your constructor.
-//           */
-// #ifdef DEBUG
-//     uBit.serial.printf("RWR Char......\n");
-// #endif 
-//     }
+    for(int i=0;i<numTimers;i++) {
+      if(params->handle == timerPeriodHandles[i]) {
+        uint32_t newValue = *((uint32_t*)(params->data));
+#if DEBUG
+        uBit.serial.printf("Timer %d updated to Val: %x\n", i, newValue);
+#endif
+        // Reset corresponding last update to "now" and count to 0
+        timerLastUpdate[i] = system_timer_current_time_us()/1000;
+        timerCounts[i] = 0;
+      }
+    }
 }
 
+void BLETestService::_monitorFiber(void *service_) {
+  BLETestService *service = (BLETestService*)service_;
+  // The actual fiber that monitors the service. 
+  while(true) { 
+    // uBit.serial.printf(".\n");
+    fiber_sleep(20);
+    // Check any running timers and update them
+    uint32_t now = system_timer_current_time_us()/1000;
+    // Check all timers
+    for(int i=0;i<numTimers;i++) {
+      uint32_t period;
+      uint16_t length = 4;
+      service->ble.readCharacteristicValue(timerPeriodHandles[i], (uint8_t*)&period, &length);
+
+      if(now-timerLastUpdate[i] > period) {
+        // Update counter 
+        timerCounts[i]++;
+        service->ble.updateCharacteristicValue(timerUpdateHandles[i], (uint8_t*)&(timerCounts[i]), 2);
+        timerLastUpdate[i] = now;
+      }
+    }
+  }
+}
+
+void BLETestService::run() {
+      (void)invoke(&BLETestService::_monitorFiber, (void*)this); // create fiber and schedule it.
+}
 
 
 /**
@@ -159,7 +208,7 @@ BLETestService::BLETestService(BLEDevice &_ble) :
                                               (uint8_t *)"-", 1, 100, 
                                               GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_READ | GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_WRITE_WITHOUT_RESPONSE);
 
-   GattCharacteristic rwrChar(UUID("1d93b942-9239-11ea-bb37-0242ac130002").getBaseUUID(), 
+    GattCharacteristic rwrChar(UUID("1d93b942-9239-11ea-bb37-0242ac130002").getBaseUUID(), 
                                               (uint8_t *)"-", 1, 100, 
                                               GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_READ | GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_WRITE);
 
@@ -189,11 +238,56 @@ BLETestService::BLETestService(BLEDevice &_ble) :
                                               GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_READ | GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_BROADCAST,
                                               allDescs, sizeof(allDescs)/sizeof(GattAttribute*));
 
+// TODO
+// Disconnect service
 
-    GattCharacteristic *characteristics[] = {&readShortChar, &readPacketChar, &readLongUUIDChar, &rwnChar, &rwrChar, &descChar};
-    GattService         service(serviceUUID.getBaseUUID(), characteristics, sizeof(characteristics) / sizeof(GattCharacteristic *));
-  //  ble.onDataWritten(this, &BLETestService::onDataWritten);
+// Authorized writes 
+
+
+
+    GattCharacteristic *timerPeriods[numTimers];
+    GattCharacteristic *timerNotOrInds[numTimers];
+    uint32_t defTime = 500;
+    uint16_t updateVal = 0;
+    for(int i=0;i<numTimers;i++) {
+      // Create each timer's period characteristic
+      timerPeriods[i] = new GattCharacteristic( UUID(timer_defs[i].periodUUID).getBaseUUID(),  
+                                                (uint8_t*)&defTime, 4, 4, 
+                                                GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_READ | GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_WRITE);
+      // And notify/indicate characteristic
+      timerNotOrInds[i] = new   GattCharacteristic( UUID(timer_defs[i].updateUUID).getBaseUUID(), 
+                                                    (uint8_t*)&updateVal, 2, 2, 
+                                                    timer_defs[i].props);
+    }    
+
+    GattCharacteristic *characteristics[6+2*numTimers] = { &readShortChar, 
+                                              &readPacketChar, 
+                                              &readLongUUIDChar,
+                                              &rwnChar, 
+                                              &rwrChar, 
+                                              &descChar};
+    // Add in the timers
+    for(int i=0;i<numTimers;i++) {
+      characteristics[6+2*i] = timerPeriods[i];
+      characteristics[6+2*i+1] = timerNotOrInds[i];
+    }
+    GattService         service(serviceUUID.getBaseUUID(), characteristics, 6+2*numTimers);
+  
+    // Get updates on data writes
+    ble.onDataWritten(this, &BLETestService::onDataWritten);
 
     ble.addService(service);
+
+    // AFTER adding to service handles are finalized....So get them
+    // And delete mem no longer needed
+    for(int i=0;i<numTimers;i++) {
+      timerPeriodHandles[i] = timerPeriods[i]->getValueHandle();
+      timerUpdateHandles[i] = timerNotOrInds[i]->getValueHandle();
+      // uBit.serial.printf("Timer %d: Value Handle: %x\n",i, timerPeriodHandles[i]);
+      delete timerPeriods[i];
+      delete timerNotOrInds[i];
+    }
+
+    // Create monitor task??? How???
 }
 

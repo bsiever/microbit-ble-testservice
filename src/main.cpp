@@ -27,12 +27,13 @@ int main() {
     bleTest = new BLETestService(*uBit.ble);
     uBit.bleManager.advertise();
 
+    bleTest->run();  // Run the fiber to manage the test service
     int i=0;
-    while(true) {
-        uBit.sleep(1000);
-        uBit.display.scroll(i);
-        uBit.serial.printf("Count 3: %d\n",i++);
-    }
+//     while(true) {
+//         fiber_sleep(1000);
+// //        uBit.display.scroll(i);  // Scrolling takes time...
+//         uBit.serial.printf("Count 3: %d\n",i++);
+//     }
 
     // If main exits, there may still be other fibers running or registered event handlers etc.
     // Simply release this fiber, which will mean we enter the scheduler. Worse case, we then
