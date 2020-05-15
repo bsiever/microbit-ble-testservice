@@ -30,12 +30,17 @@ Wr = Write with response (ack if less than limit; Nack if over limit)
 | RWn    | Short R/Wn Data  | 1d93b636-9239-11ea-bb37-0242ac130002 | For testing writes up to 20 bytes (readback to confirm) (mbed doesn't do long writes)|
 | RWr    | Short R/W Data  | 1d93b942-9239-11ea-bb37-0242ac130002 | For testing writes up to 20 bytes (readback to confirm) (mbed doesn't do long writes)|
 
-Write w/ Response
+| RWn    | Short R Data  | 1d93b942-9239-11ea-bb37-0242ac130002 | Only 1 byte of data ("-"); For testing Descriptors  ; |
+
+
 
 Notifications
 Indications
 
 Read / Write Descriptors
+
+Authorization / Authentication
+
 
 Long writes?
 
@@ -109,17 +114,17 @@ void BLETestService::onDataWritten(const GattWriteCallbackParams *params) {
 #ifdef DEBUG
     uBit.serial.printf("Data Written......\n");
 #endif 
-    if (params->handle == rwrChar->getValueAttribute().getHandle()) {
-        /* Do something here if the new value is 1; else you can override this method by
-          * extending this class.
-          * @NOTE: If you are extending this class, be sure to also call
-          * ble.onDataWritten(this, &ExtendedHRService::onDataWritten); in
-          * your constructor.
-          */
-#ifdef DEBUG
-    uBit.serial.printf("RWR Char......\n");
-#endif 
-    }
+//     if (params->handle == rwrChar->getValueAttribute().getHandle()) {
+//         /* Do something here if the new value is 1; else you can override this method by
+//           * extending this class.
+//           * @NOTE: If you are extending this class, be sure to also call
+//           * ble.onDataWritten(this, &ExtendedHRService::onDataWritten); in
+//           * your constructor.
+//           */
+// #ifdef DEBUG
+//     uBit.serial.printf("RWR Char......\n");
+// #endif 
+//     }
 }
 
 
@@ -154,13 +159,38 @@ BLETestService::BLETestService(BLEDevice &_ble) :
                                               (uint8_t *)"-", 1, 20, 
                                               GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_READ | GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_WRITE_WITHOUT_RESPONSE);
 
-
    GattCharacteristic rwrChar(UUID("1d93b942-9239-11ea-bb37-0242ac130002").getBaseUUID(), 
                                               (uint8_t *)"-", 1, 20, 
                                               GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_READ | GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_WRITE);
 
+    // Include extended properties and designating the description to be writeable
+    uint16_t writeAux = 0x0002;
+    GattAttribute  ep( BLE_UUID_DESCRIPTOR_CHAR_EXT_PROP, (uint8_t*)&writeAux, 2, 2); // 0x2900
 
-    GattCharacteristic *characteristics[] = {&readShortChar, &readPacketChar, &readLongUUIDChar, &rwnChar, &rwrChar};
+    // User Description 
+    GattAttribute  desc1( BLE_UUID_DESCRIPTOR_CHAR_USER_DESC, (uint8_t*)"Test", 4, 20);
+
+    // Server Config
+    uint16_t sval = 0;
+    GattAttribute  serv( BLE_UUID_DESCRIPTOR_SERVER_CHAR_CONFIG, (uint8_t*)&sval, 2, 2);  // 0x2903
+
+    // Presentation format
+    // format, exponent, unit, namespace, desc  //2904
+    GattCharacteristic::PresentationFormat_t pres = { GattCharacteristic::BLE_GATT_FORMAT_SINT16, 3, GattCharacteristic::BLE_GATT_UNIT_AREA_SQUARE_METRES, 1, 0};
+    GattAttribute  desc2( BLE_UUID_DESCRIPTOR_CHAR_PRESENTATION_FORMAT, (uint8_t*)&pres, sizeof(pres), sizeof(pres));
+
+    // Misc. special attribute
+    GattAttribute  misc( UUID((UUID::ShortUUIDBytes_t)0x2929), (uint8_t*)&sval, 2, 2);  
+
+    GattAttribute   *allDescs[] = { &ep, &desc1, &desc2, &serv, &misc};
+    uint16_t value = 0x0004;
+    GattCharacteristic  descChar( UUID("1d93b942-9239-11ea-bb37-0242ac130002").getBaseUUID(), 
+                                              (uint8_t*)&value, 2, 2, 
+                                              GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_READ | GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_BROADCAST,
+                                              allDescs, sizeof(allDescs)/sizeof(GattAttribute*));
+
+
+    GattCharacteristic *characteristics[] = {&readShortChar, &readPacketChar, &readLongUUIDChar, &rwnChar, &rwrChar, &descChar};
     GattService         service(serviceUUID.getBaseUUID(), characteristics, sizeof(characteristics) / sizeof(GattCharacteristic *));
   //  ble.onDataWritten(this, &BLETestService::onDataWritten);
 
