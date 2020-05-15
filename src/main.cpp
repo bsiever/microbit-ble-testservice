@@ -28,7 +28,7 @@ int main() {
     uBit.bleManager.advertise();
 
     bleTest->run();  // Run the fiber to manage the test service
-    int i=0;
+    // int i=0;
 //     while(true) {
 //         fiber_sleep(1000);
 // //        uBit.display.scroll(i);  // Scrolling takes time...

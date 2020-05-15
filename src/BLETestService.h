@@ -14,31 +14,41 @@
 extern MicroBit uBit;
 #endif
 
+
+const int numTimers = 4;
+
+
 /**
   * Class definition for a MicroBit BLE Button Service.
   * Provides access to live button data via BLE, and provides basic configuration options.
   */
 class BLETestService
 {
-    public:
+public:
 
-    /**
-      * Constructor.
-      * Create a representation of the ButtonService
-      * @param _ble The instance of a BLE device that we're running on.
-      */
-    BLETestService(BLEDevice &_ble);
+  /**
+    * Constructor.
+    * Create a representation of the ButtonService
+    * @param _ble The instance of a BLE device that we're running on.
+    */
+  BLETestService(BLEDevice &_ble);
 
-    void run(); 
+  void run(); 
 
-    private:
+private:
 
-    // Bluetooth stack we're running on.
-    BLEDevice           &ble;
+  // Bluetooth stack we're running on.
+  BLEDevice           &ble;
 
-    // Misc event handlers
-    void onDataWritten(const GattWriteCallbackParams *params);
-    static void _monitorFiber(void *service);
+  GattAttribute::Handle_t timerPeriodHandles[numTimers];
+  GattAttribute::Handle_t timerUpdateHandles[numTimers];
+  uint32_t timerLastUpdate[numTimers];
+  uint32_t timerCounts[numTimers];
+
+
+  // Misc event handlers
+  void onDataWritten(const GattWriteCallbackParams *params);
+  static void _monitorFiber(void *service);
 };
 
 

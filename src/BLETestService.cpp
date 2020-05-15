@@ -32,14 +32,22 @@ I = Indicatable
 | RWn    | Short R/Wn Data  | 1d93b636-9239-11ea-bb37-0242ac130002 | For testing writes up to 100 bytes (readback to confirm) (mbed doesn't do long writes)|
 | RWr    | Short R/W Data  | 1d93b942-9239-11ea-bb37-0242ac130002 | For testing writes up to 100 bytes (readback to confirm) (mbed doesn't do long writes)|
 | RWn    | Short R Data  | 1d93b942-9239-11ea-bb37-0242ac130002 | Only 1 byte of data ("-"); For testing Descriptors  ; |
+
+| Wr | Client Disconnect | 1d93c1e4-9239-11ea-bb37-0242ac130002 | Time (in ms) until client will disconnect intentionally |
+| Wr | Client Reset (hard disconnect) | 1d93c2c0-9239-11ea-bb37-0242ac130002| Time (in ms) until client will disconnect intentionally |
+
+
+
+
+
 | RWr | Notifiable counter1 period | 1d93b942-9239-11ea-bb37-0242ac130002 | 4 byte value in ms indicating the period of updated to the notifications of counter 1; 500ms initially|
-| N | Notifiable counter1 | 1d93bb2c-9239-11ea-bb37-0242ac130002| 2 byte counter; Starts at 1 on enable and counts up |
-| RWr | Notifiable counter2 period | 1d93bbea-9239-11ea-bb37-0242ac130002 | 4 byte value in ms indicating the period of updated to the notifications of counter 1; 500ms initially|
-| N | Notifiable counter2 | 1d93bc9e-9239-11ea-bb37-0242ac130002| 2 byte counter; Starts at 1 on enable and counts up |
+| N | Notifiable counter1 | 1d93bb2c-9239-11ea-bb37-0242ac130002| 4 byte counter; Starts at 1 on enable and counts up |
+// | RWr | Notifiable counter2 period | 1d93bbea-9239-11ea-bb37-0242ac130002 | 4 byte value in ms indicating the period of updated to the notifications of counter 1; 500ms initially|
+// | N | Notifiable counter2 | 1d93bc9e-9239-11ea-bb37-0242ac130002| 4 byte counter; Starts at 1 on enable and counts up |
 | RWr | Indicatable counter1 period | 1d93bd52-9239-11ea-bb37-0242ac130002 | 4 byte value in ms indicating the period of updated to the notifications of counter 1; 500ms initially|
-| N | Indicatable counter1 | 1d93be06-9239-11ea-bb37-0242ac130002| 2 byte counter; Starts at 1 on enable and counts up |
+| N | Indicatable counter1 | 1d93be06-9239-11ea-bb37-0242ac130002| 4 byte counter; Starts at 1 on enable and counts up |
 | RWr | Indicatable counter2 period | 1d93bec4-9239-11ea-bb37-0242ac130002 | 4 byte value in ms indicating the period of updated to the notifications of counter 1; 500ms initially|
-| N | Indicatable counter2 | 1d93bf82-9239-11ea-bb37-0242ac130002| 2 byte counter; Starts at 1 on enable and counts up |
+| N | Indicatable counter2 | 1d93bf82-9239-11ea-bb37-0242ac130002| 4 byte counter; Starts at 1 on enable and counts up |
 
 
 
@@ -82,8 +90,6 @@ Force disconnect?
 
 
 
-1d93c1e4-9239-11ea-bb37-0242ac130002
-1d93c2c0-9239-11ea-bb37-0242ac130002
 1d93c374-9239-11ea-bb37-0242ac130002
 1d93c432-9239-11ea-bb37-0242ac130002
 1d93af38-9239-11ea-bb37-0242ac130002
@@ -118,19 +124,17 @@ typedef struct  {
 
 static const timer_def timer_defs[] = {
   {"1d93b942-9239-11ea-bb37-0242ac130002", "1d93bb2c-9239-11ea-bb37-0242ac130002", GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_NOTIFY},
+
+// // UGH: Why!
+//   {"1d93bbff-9239-11ea-bb37-0242ac130002", "1d93bcfe-9239-11ea-bb37-0242ac130002", GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_READ},
+
   {"1d93bbea-9239-11ea-bb37-0242ac130002", "1d93bc9e-9239-11ea-bb37-0242ac130002", GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_NOTIFY},
+
   {"1d93bd52-9239-11ea-bb37-0242ac130002", "1d93be06-9239-11ea-bb37-0242ac130002", GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_INDICATE},
+
   {"1d93bec4-9239-11ea-bb37-0242ac130002", "1d93bf82-9239-11ea-bb37-0242ac130002", GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_INDICATE}
 };
 
-static const int numTimers = sizeof(timer_defs)/sizeof(timer_def);
-
-// Not very OOP, but I'm assuming this service is a singleton
-static GattAttribute::Handle_t timerPeriodHandles[numTimers];
-static GattAttribute::Handle_t timerUpdateHandles[numTimers];
-
-static uint32_t timerLastUpdate[numTimers] = {0};
-static uint16_t timerCounts[numTimers] = {0};
 
 void BLETestService::onDataWritten(const GattWriteCallbackParams *params) {
 #ifdef DEBUG
@@ -151,30 +155,39 @@ void BLETestService::onDataWritten(const GattWriteCallbackParams *params) {
 
 void BLETestService::_monitorFiber(void *service_) {
   BLETestService *service = (BLETestService*)service_;
+  uBit.serial.printf("Service pointer: %X\n", service);
+
   // The actual fiber that monitors the service. 
   while(true) { 
     // uBit.serial.printf(".\n");
-    fiber_sleep(20);
+    fiber_sleep(40);
     // Check any running timers and update them
     uint32_t now = system_timer_current_time_us()/1000;
     // Check all timers
     for(int i=0;i<numTimers;i++) {
       uint32_t period;
       uint16_t length = 4;
-      service->ble.readCharacteristicValue(timerPeriodHandles[i], (uint8_t*)&period, &length);
+      service->ble.readCharacteristicValue(service->timerPeriodHandles[i], (uint8_t*)&period, &length);
 
-      if(now-timerLastUpdate[i] > period) {
+      if(now-service->timerLastUpdate[i] > period) {
         // Update counter 
-        timerCounts[i]++;
-        service->ble.updateCharacteristicValue(timerUpdateHandles[i], (uint8_t*)&(timerCounts[i]), 2);
-        timerLastUpdate[i] = now;
+        service->timerCounts[i]++;
+#if DEBUG
+        uBit.serial.printf("Timer %d (%x) updated to Val: %x\n", i, service->timerUpdateHandles[i], service->timerCounts[i]);
+#endif
+        uint32_t newVal = service->timerCounts[i];
+        service->ble.updateCharacteristicValue(service->timerUpdateHandles[i], (uint8_t*)&newVal, 4);
+        service->timerLastUpdate[i] = now;
+        break;  // Wait until the next time slot for any other updates. 
       }
     }
   }
 }
 
 void BLETestService::run() {
-      (void)invoke(&BLETestService::_monitorFiber, (void*)this); // create fiber and schedule it.
+    uBit.serial.printf("This pointer: %X\n", this);
+
+  (void)invoke(&BLETestService::_monitorFiber, (void*)this); // create fiber and schedule it.
 }
 
 
@@ -248,7 +261,7 @@ BLETestService::BLETestService(BLEDevice &_ble) :
     GattCharacteristic *timerPeriods[numTimers];
     GattCharacteristic *timerNotOrInds[numTimers];
     uint32_t defTime = 500;
-    uint16_t updateVal = 0;
+    uint32_t updateVal = 0;
     for(int i=0;i<numTimers;i++) {
       // Create each timer's period characteristic
       timerPeriods[i] = new GattCharacteristic( UUID(timer_defs[i].periodUUID).getBaseUUID(),  
@@ -256,7 +269,7 @@ BLETestService::BLETestService(BLEDevice &_ble) :
                                                 GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_READ | GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_WRITE);
       // And notify/indicate characteristic
       timerNotOrInds[i] = new   GattCharacteristic( UUID(timer_defs[i].updateUUID).getBaseUUID(), 
-                                                    (uint8_t*)&updateVal, 2, 2, 
+                                                    (uint8_t*)&updateVal, 4, 4, 
                                                     timer_defs[i].props);
     }    
 
@@ -283,6 +296,8 @@ BLETestService::BLETestService(BLEDevice &_ble) :
     for(int i=0;i<numTimers;i++) {
       timerPeriodHandles[i] = timerPeriods[i]->getValueHandle();
       timerUpdateHandles[i] = timerNotOrInds[i]->getValueHandle();
+      timerLastUpdate[i] = 0;
+      timerCounts[i] = 0;
       // uBit.serial.printf("Timer %d: Value Handle: %x\n",i, timerPeriodHandles[i]);
       delete timerPeriods[i];
       delete timerNotOrInds[i];
