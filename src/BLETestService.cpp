@@ -156,11 +156,11 @@ BLETestService::BLETestService(BLEDevice &_ble) :
                                             GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_READ);
 
     GattCharacteristic  rwnChar( UUID("1d93b636-9239-11ea-bb37-0242ac130002").getBaseUUID(), 
-                                              (uint8_t *)"-", 1, 20, 
+                                              (uint8_t *)"-", 1, 100, 
                                               GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_READ | GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_WRITE_WITHOUT_RESPONSE);
 
    GattCharacteristic rwrChar(UUID("1d93b942-9239-11ea-bb37-0242ac130002").getBaseUUID(), 
-                                              (uint8_t *)"-", 1, 20, 
+                                              (uint8_t *)"-", 1, 100, 
                                               GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_READ | GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_WRITE);
 
     // Include extended properties and designating the description to be writeable
