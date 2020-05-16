@@ -45,6 +45,13 @@ private:
   uint32_t timerLastUpdate[numTimers];
   uint32_t timerCounts[numTimers];
 
+  GattAttribute::Handle_t disconnectHandle;
+  uint32_t disconnectTimerStart;
+  uint32_t disconnectTimerPeriod;
+  GattAttribute::Handle_t resetHandle;
+  uint32_t resetTimerStart;
+  uint32_t resetTimerPeriod;
+  
 
   // Misc event handlers
   void onDataWritten(const GattWriteCallbackParams *params);
