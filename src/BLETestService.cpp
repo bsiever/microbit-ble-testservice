@@ -139,6 +139,7 @@ void BLETestService::_monitorFiber(void *service_) {
         uint32_t now = system_timer_current_time_us()/1000;
 
         if(now-service->resetTimerStart > service->resetTimerPeriod) {
+          service->resetTimerPeriod = 0;
           // Reset
           uBit.reset();
         }
@@ -148,6 +149,7 @@ void BLETestService::_monitorFiber(void *service_) {
         uint32_t now = system_timer_current_time_us()/1000;
 
         if(now-service->disconnectTimerStart > service->disconnectTimerPeriod) {
+          service->disconnectTimerPeriod = 0;
           // Disconnect
           service->ble.disconnect(Gap::LOCAL_HOST_TERMINATED_CONNECTION);
         }
