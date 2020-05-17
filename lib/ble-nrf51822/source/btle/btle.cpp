@@ -50,8 +50,7 @@ void            app_error_handler(uint32_t error_code, uint32_t line_num, const 
 static ble_user_mem_block_t mem_block;
 
 // 6 bytes of overhead per message  100 bytes @ 20 bytes of data per message requires 100/20 = 5 messages
-
-static const int MAX_ATTR_SIZE = 100;                           // Total payload
+static const int MAX_ATTR_SIZE = 80;                           // Total payload
 static const int MAX_PACKETS_FOR_ATTR = (MAX_ATTR_SIZE+17)/18;  // Number of packets for payload
 //https://devzone.nordicsemi.com/f/nordic-q-a/18038/allocating-memory-for-queued-writes
 //https://infocenter.nordicsemi.com/index.jsp?topic=%2Fcom.nordic.infocenter.s132.api.v3.0.0%2Fgroup___b_l_e___g_a_t_t_s___q_u_e_u_e_d___w_r_i_t_e_s___u_s_e_r___m_e_m.html&cp=2_3_0_1_0_2_4_5

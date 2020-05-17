@@ -42,6 +42,7 @@ private:
 
   GattAttribute::Handle_t timerPeriodHandles[numTimers];
   GattAttribute::Handle_t timerUpdateHandles[numTimers];
+  GattCharacteristic *timers[numTimers];
   uint32_t timerLastUpdate[numTimers];
   uint32_t timerCounts[numTimers];
 

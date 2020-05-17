@@ -7,19 +7,19 @@ BLETestService *bleTest;
 MicroBit uBit;
 
 void onConnected(MicroBitEvent) {
-    uBit.display.scroll("O");
+    uBit.display.printChar('O');
     uBit.serial.printf("Connected\n");
 }
 
 void onDisconnected(MicroBitEvent) {
-    uBit.display.scroll("X");
+    uBit.display.printChar('X');
     uBit.serial.printf("Disconnected\n");
 }
 
 int main() {
     uBit.init();
 
-    uBit.display.scroll("Y");
+    uBit.display.printChar('-');
     uBit.serial.printf("Start......\n");
 
     uBit.messageBus.listen(MICROBIT_ID_BLE, MICROBIT_BLE_EVT_CONNECTED, onConnected);

@@ -10,6 +10,9 @@ The service can be used to test BLE libraries on different platforms.
   * Advertising
   * GAP Name
 * Update `src/BLETestService.cpp` (and possibly `src/BLETestService.h`) for newer services
+* Update `lib/ble-nrf51822/source/btle/btle.cpp` for long writes
+  * `MAX_ATTR_SIZE = 80;` defines size of max attribute
+  
 
 # Misc. Notes
 
@@ -22,3 +25,5 @@ The service can be used to test BLE libraries on different platforms.
   * Currently requires older version of PlatformIO's nordicnrf51 library (3.0.1; newer versions seem to have compatibility problems, probably due to use of newer and incompatible mbed versions)
 * Added `src/BLETestService.cpp` and `src/BLETestService.h` for the test service.
 * `platformio.ini` specifies baud rate / etc.
+* UGHHH.  Some weird bug prevents the 2nd of a series of notify/indicates from notifying/indicating using the normal "update" to a characteristic, but an explicit call only to notify only if enabled seems to fix it. 
+* 
