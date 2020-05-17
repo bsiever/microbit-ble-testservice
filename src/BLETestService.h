@@ -52,11 +52,15 @@ private:
   GattAttribute::Handle_t resetHandle;
   uint32_t resetTimerStart;
   uint32_t resetTimerPeriod;
+  GattAttribute::Handle_t authPermisHandle;  // Authorization permissions
   
 
   // Misc event handlers
   void onDataWritten(const GattWriteCallbackParams *params);
   static void _monitorFiber(void *service);
+  void authorizeRead(GattReadAuthCallbackParams *readAuth);
+  void authorizeWrite(GattWriteAuthCallbackParams *writeAuth);
+  GattCharacteristic *authData;
 };
 
 

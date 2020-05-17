@@ -29,13 +29,10 @@ I = Indicatable
 | R     |  Data Short    | 1d93b2f8-9239-11ea-bb37-0242ac130002 |  Contains ASCII digits 0-9: "0123456789"  (10 bytes) | 
 | R     |  Data Packet   | 1d93b488-9239-11ea-bb37-0242ac130002 | Contains 20 bytes:"abcdefghijklmnopqrst" (full BLE packet) |
 | R     |  Data Long     | 1d93b56e-9239-11ea-bb37-0242ac130002 | Contains 62 bytes: "abcdefghijklmnopqrstuvwzyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789" (multiple packets) |
-| RWn    | Short R/Wn Data  | 1d93b636-9239-11ea-bb37-0242ac130002 | For testing writes up to 80 bytes (readback to confirm) (mbed doesn't do long writes)|
-| RWr    | Short R/W Data  | 1d93b942-9239-11ea-bb37-0242ac130002 | For testing writes up to 80 bytes (readback to confirm) (mbed doesn't do long writes)|
-| RWn    | Short R Data  |  1d93c432-9239-11ea-bb37-0242ac130002  | Only 1 byte of data ("-"); For testing Descriptors  ; |
-
-| RWr    | Short R/W Data (identical ids)  | 1d93c374-9239-11ea-bb37-0242ac130002 | For testing writes up to 4 bytes (readback to confirm) (mbed doesn't do long writes)|
-| RWr    | Short R/W Data (identical ids) | 1d93c374-9239-11ea-bb37-0242ac130002 | For testing writes up to 4 bytes (readback to confirm) (mbed doesn't do long writes)|
-
+| RWn    | Short R/Wn Data  | 1d93b636-9239-11ea-bb37-0242ac130002 | For testing writes up to 80 bytes (readback to confirm)|
+| RWr    | Short R/W Data  | 1d93b942-9239-11ea-bb37-0242ac130002 | For testing writes up to 80 bytes (readback to confirm) |
+| RWr    | Short R/W Data (identical ids)  | 1d93c374-9239-11ea-bb37-0242ac130002 | For testing writes up to 4 bytes (readback to confirm) |
+| RWr    | Short R/W Data (identical ids) | 1d93c374-9239-11ea-bb37-0242ac130002 | For testing writes up to 4 bytes (readback to confirm) |
 | RWr | Client Disconnect | 1d93c1e4-9239-11ea-bb37-0242ac130002 | Time (in ms) until client will disconnect intentionally |
 | RWr | Client Reset (hard disconnect) | 1d93c2c0-9239-11ea-bb37-0242ac130002| Time (in ms) until client will disconnect intentionally |
 
@@ -49,20 +46,18 @@ I = Indicatable
 | N | Indicatable counter2 | 1d93bf82-9239-11ea-bb37-0242ac130002| 4 byte counter; Starts at 1 on enable and counts up |
 
 
-Authorization / Authentication
-Signed Write? 
-Queued Write? 
-Writeable Auxiliries ? 
 
+Todo:
+2nd test device for descriptors  & Auth read/write 
+| RWn    | Short R Data  |  1d93c432-9239-11ea-bb37-0242ac130002  | Only 1 byte of data ("-"); For testing Descriptors  ; |
+| RW | Auth Permissions | 1d93b7c6-9239-11ea-bb37-0242ac130002 | 4 ASCII bytes; including an "R" allows Read and "W" allows write |
+| RaWa | Auth Data | 1d93b884-9239-11ea-bb37-0242ac130002 | Data for authorization test (8 bytes) |
 Misc Advertising:
   Scan with name 
   Scan with UUID
 
 Reference: https://www.oreilly.com/library/view/getting-started-with/9781491900550/ch04.html
 
-// For authorized writes
-1d93b7c6-9239-11ea-bb37-0242ac130002
-1d93b884-9239-11ea-bb37-0242ac130002
 */
 
 
@@ -133,7 +128,7 @@ void BLETestService::_monitorFiber(void *service_) {
         if(sendUpdate) {
           // service->ble.gattServer().notify(service->timers[i]->getValueHandle(), &newVal, 4);
           service->ble.updateCharacteristicValue(service->timerUpdateHandles[i], (uint8_t*)&newVal, 4);
- uBit.serial.printf("Updating timer: %d (%X) to %d\n", i, service->timerUpdateHandles[i], service->timerCounts[i]);
+          uBit.serial.printf("Updating timer: %d (%X) to %d\n", i, service->timerUpdateHandles[i], service->timerCounts[i]);
         }
         // service->ble.updateCharacteristicValue(service->timerUpdateHandles[i], (uint8_t*)&newVal, 4);
         service->timerLastUpdate[i] = now;
@@ -169,6 +164,35 @@ void BLETestService::run() {
   (void)invoke(&BLETestService::_monitorFiber, (void*)this); // create fiber and schedule it.
 }
 
+
+void BLETestService::authorizeRead(GattReadAuthCallbackParams *readAuth) {
+  char data[] = "\0\0\0\0\0";
+  uint16_t length = 4;
+    uBit.serial.printf("Read Perm!");
+  ble.readCharacteristicValue(authPermisHandle, (uint8_t*)data, &length);
+  if(strchr(data, 'R')) {
+    readAuth->authorizationReply = AUTH_CALLBACK_REPLY_SUCCESS;
+    uBit.serial.printf("Read OK!");
+  } else {
+    readAuth->authorizationReply =  AUTH_CALLBACK_REPLY_ATTERR_READ_NOT_PERMITTED;
+    uBit.serial.printf("Read NACK!");
+  }
+}
+
+void BLETestService::authorizeWrite(GattWriteAuthCallbackParams *writeAuth) {
+  char data[] = "\0\0\0\0\0";
+    uBit.serial.printf("Write Perm!");
+
+  uint16_t length = 4;
+  ble.readCharacteristicValue(authPermisHandle, (uint8_t*)data, &length);
+  if(strchr(data, 'W')) {
+    writeAuth->authorizationReply = AUTH_CALLBACK_REPLY_SUCCESS;
+    uBit.serial.printf("Write OK!");
+  } else {
+    writeAuth->authorizationReply =  AUTH_CALLBACK_REPLY_ATTERR_WRITE_NOT_PERMITTED;
+    uBit.serial.printf("Write NACK!");
+  }  
+}
 
 /**
   * Constructor.
@@ -231,6 +255,21 @@ BLETestService::BLETestService(BLEDevice &_ble) :
     //                                           allDescs, sizeof(allDescs)/sizeof(GattAttribute*));
 
 
+    // TODO: Authorized writes ???
+
+    GattCharacteristic  authPermis( UUID("1d93b7c6-9239-11ea-bb37-0242ac130002").getBaseUUID(), 
+                                                  (uint8_t *)"NONE", 4, 4, 
+                                                  GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_READ | GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_WRITE);
+
+    authData = new GattCharacteristic(UUID("1d93b884-9239-11ea-bb37-0242ac130002").getBaseUUID(), 
+                                                  (uint8_t *)"Granted!", 8, 8, 
+                                                  GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_READ | GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_WRITE);
+
+
+    //   // Set callbacks on Permissions / Data
+    authData->setWriteAuthorizationCallback(this, &BLETestService::authorizeWrite);
+    authData->setReadAuthorizationCallback(this, &BLETestService::authorizeRead);
+
     // Identical IDs
     GattCharacteristic ident1(UUID("1d93c374-9239-11ea-bb37-0242ac130002").getBaseUUID(), 
                                 (uint8_t *)"a", 1, 4, 
@@ -252,7 +291,6 @@ BLETestService::BLETestService(BLEDevice &_ble) :
                                 GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_READ | GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_WRITE);
 
 
-// TODO: Authorized writes ???
 
     GattCharacteristic *timerPeriods[numTimers];
     uint32_t defTime = 1000;
@@ -269,9 +307,9 @@ BLETestService::BLETestService(BLEDevice &_ble) :
     }    
 
     GattCharacteristic *characteristics[] = { 
-                                    &readShortChar, 
-                                    &readPacketChar, 
-                                    &readLongUUIDChar,
+                                    // &readShortChar, 
+                                    // &readPacketChar, 
+                                    // &readLongUUIDChar,
                                     &rwnChar, 
                                     &rwrChar, 
                                     // &descChar,
@@ -279,6 +317,8 @@ BLETestService::BLETestService(BLEDevice &_ble) :
                                     &ident2,
                                     &discon, 
                                     &reset, 
+                                    &authPermis, 
+                                    authData,
                                     timerPeriods[0], timers[0],
                                     timerPeriods[1], timers[1],
                                     timerPeriods[2], timers[2],
@@ -306,5 +346,8 @@ BLETestService::BLETestService(BLEDevice &_ble) :
     uBit.serial.printf("Disconnect handle: %X\n", disconnectHandle);
     resetHandle = reset.getValueHandle();
     uBit.serial.printf("Reset handle: %X\n", resetHandle);
+    authPermisHandle = authPermis.getValueHandle();
+    uBit.serial.printf("Auth Permis handle 2: %X\n", authPermisHandle);
+
 }
 
