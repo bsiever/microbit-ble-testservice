@@ -17,13 +17,20 @@ Service:  1d93af38-9239-11ea-bb37-0242ac130002
 Characteristics: 
 
 Reads & Writes 
- 
-R = Read; 
-Wn = Write without response
-Wr = Write with response (ack if less than limit; Nack if over limit)
-N = Notifiable
-I = Indicatable
 
+## Property Abbreviations
+
+| Abbreviation | Meaning | 
+|:------------:|:--------|
+| R            | Read |
+| Wn           | Write without response |
+| Wr           | Write with response (ack if less than limit; Nack if over limit) |
+| Wa           | Authorized Write (may be rejected) |
+| N            | Notifiable |
+| I            | Indicatable |
+
+
+## Service 
 
 | Props | Short desc | UUID | Long Description |
 |-------|------------|------|------------------|
@@ -32,13 +39,12 @@ I = Indicatable
 | R     |  Data Long     | 1d93b56e-9239-11ea-bb37-0242ac130002 | Contains 62 bytes: "abcdefghijklmnopqrstuvwzyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789" (multiple packets) |
 | RWn    | Short R/Wn Data  | 1d93b636-9239-11ea-bb37-0242ac130002 | For testing writes up to 20 bytes (readback to confirm)|
 | RWr    | Short R/W Data  | 1d93b942-9239-11ea-bb37-0242ac130002 | For testing writes up to 80 bytes (readback to confirm) |
-| RWr    | Short R/W Data (identical ids)  | 1d93c374-9239-11ea-bb37-0242ac130002 | For testing writes up to 4 bytes (readback to confirm) |
-| RWr    | Short R/W Data (identical ids) | 1d93c374-9239-11ea-bb37-0242ac130002 | For testing writes up to 4 bytes (readback to confirm) |
 | RWr | Client Disconnect | 1d93c1e4-9239-11ea-bb37-0242ac130002 | Time (in ms) until client will disconnect intentionally |
 | RWr | Client Reset (hard disconnect) | 1d93c2c0-9239-11ea-bb37-0242ac130002| Time (in ms) until client will disconnect intentionally |
 | RW | Auth Permissions | 1d93b7c6-9239-11ea-bb37-0242ac130002 | 4 ASCII bytes; including an "R" allows Read and "W" allows write |
 | RaWa | Auth Data | 1d93b884-9239-11ea-bb37-0242ac130002 | Data for authorization test (8 bytes) |
 | RWr | Notifiable counter1 period | 1d93b6fe-9239-11ea-bb37-0242ac130002 | 4 byte value in ms indicating the period of updated to the notifications of counter 1; 500ms initially|
+| RWn    | Short R Data  |  1d93c432-9239-11ea-bb37-0242ac130002  | Only 1 byte of data ("-"); For testing Descriptors  ; |
 | N | Notifiable counter1 | 1d93bb2c-9239-11ea-bb37-0242ac130002| 4 byte counter; Starts at 1 on enable and counts up |
 | RWr | Notifiable counter2 period | 1d93bbea-9239-11ea-bb37-0242ac130002 | 4 byte value in ms indicating the period of updated to the notifications of counter 1; 500ms initially|
 | N | Notifiable counter2 | 1d93bc9e-9239-11ea-bb37-0242ac130002| 4 byte counter; Starts at 1 on enable and counts up |
@@ -50,7 +56,9 @@ I = Indicatable
 
 Todo:
 2nd test device for descriptors  & Auth read/write 
-| RWn    | Short R Data  |  1d93c432-9239-11ea-bb37-0242ac130002  | Only 1 byte of data ("-"); For testing Descriptors  ; |
+| RWr    | Short R/W Data (identical ids)  | 1d93c374-9239-11ea-bb37-0242ac130002 | For testing writes up to 4 bytes (readback to confirm) |
+| RWr    | Short R/W Data (identical ids) | 1d93c374-9239-11ea-bb37-0242ac130002 | For testing writes up to 4 bytes (readback to confirm) |
+
 Misc Advertising:
   Scan with name 
   Scan with UUID
@@ -227,36 +235,35 @@ BLETestService::BLETestService(BLEDevice &_ble) :
                                               (uint8_t *)"-", 1, 80, 
                                               GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_READ | GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_WRITE);
 
-    // // Include extended properties and designating the description to be writeable
-    // uint16_t writeAux = 0x0002;
-    // ep = new GattAttribute( BLE_UUID_DESCRIPTOR_CHAR_EXT_PROP, (uint8_t*)&writeAux, 2, 2); // 0x2900
+    // Include extended properties and designating the description to be writeable
+    uint16_t writeAux = 0x0002;
+    ep = new GattAttribute( BLE_UUID_DESCRIPTOR_CHAR_EXT_PROP, (uint8_t*)&writeAux, 2, 2); // 0x2900
 
-    // // User Description 
-    // desc1 = new GattAttribute( BLE_UUID_DESCRIPTOR_CHAR_USER_DESC, (uint8_t*)"Test", 4, 20);
+    // User Description 
+    desc1 = new GattAttribute( BLE_UUID_DESCRIPTOR_CHAR_USER_DESC, (uint8_t*)"Test", 4, 20);
 
-    // // Server Config
-    // uint16_t sval = 0;
-    // serv = new GattAttribute( BLE_UUID_DESCRIPTOR_SERVER_CHAR_CONFIG, (uint8_t*)&sval, 2, 2);  // 0x2903
+    // Server Config
+    uint16_t sval = 0;
+    serv = new GattAttribute( BLE_UUID_DESCRIPTOR_SERVER_CHAR_CONFIG, (uint8_t*)&sval, 2, 2);  // 0x2903
 
-    // // Presentation format
-    // // format, exponent, unit, namespace, desc  //2904
-    // GattCharacteristic::PresentationFormat_t pres = { GattCharacteristic::BLE_GATT_FORMAT_SINT16, 3, GattCharacteristic::BLE_GATT_UNIT_AREA_SQUARE_METRES, 1, 0};
-    // desc2 = new GattAttribute( BLE_UUID_DESCRIPTOR_CHAR_PRESENTATION_FORMAT, (uint8_t*)&pres, sizeof(pres), sizeof(pres));
+    // Presentation format
+    // format, exponent, unit, namespace, desc  //2904
+    GattCharacteristic::PresentationFormat_t pres = { GattCharacteristic::BLE_GATT_FORMAT_SINT16, 3, GattCharacteristic::BLE_GATT_UNIT_AREA_SQUARE_METRES, 1, 0};
+    desc2 = new GattAttribute( BLE_UUID_DESCRIPTOR_CHAR_PRESENTATION_FORMAT, (uint8_t*)&pres, sizeof(pres), sizeof(pres));
 
-    // // Misc. special attribute
-    // misc = new GattAttribute( UUID((UUID::ShortUUIDBytes_t)0x2929), (uint8_t*)&sval, 2, 2);  
+    // Misc. special attribute
+    misc = new GattAttribute( UUID((UUID::ShortUUIDBytes_t)0x2929), (uint8_t*)&sval, 2, 2);  
 
-    // allDescs[0] = ep;
-    // allDescs[1] = desc1;
-    // allDescs[2] = desc2;
-    // allDescs[3] = serv;
-    // allDescs[4] = misc;
-    // uint16_t value = 0x0004;
+    allDescs[0] = ep;
+    allDescs[1] = desc1;
+    allDescs[2] = desc2;
+    allDescs[3] = serv;
+    allDescs[4] = misc;
+    uint16_t value = 0x0004;
     descChar = new GattCharacteristic( UUID("1d93c432-9239-11ea-bb37-0242ac130002").getBaseUUID(), 
                                               (uint8_t*)&value, 2, 2, 
-                                              GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_READ | GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_BROADCAST
-                                              );
-                                              // , allDescs, 5);
+                                              GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_READ | GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_BROADCAST,
+                                              allDescs, 5);
 
 
     authPermis = new GattCharacteristic( UUID("1d93b7c6-9239-11ea-bb37-0242ac130002").getBaseUUID(), 
@@ -272,15 +279,15 @@ BLETestService::BLETestService(BLEDevice &_ble) :
     authData->setWriteAuthorizationCallback(this, &BLETestService::authorizeWrite);
     authData->setReadAuthorizationCallback(this, &BLETestService::authorizeRead);
 
-    // Identical IDs
-    ident1 = new GattCharacteristic(UUID("1d93c374-9239-11ea-bb37-0242ac130002").getBaseUUID(), 
-                                (uint8_t *)"a", 1, 4, 
-                                GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_READ | GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_WRITE);
+    // // Identical IDs
+    // ident1 = new GattCharacteristic(UUID("1d93c374-9239-11ea-bb37-0242ac130002").getBaseUUID(), 
+    //                             (uint8_t *)"a", 1, 4, 
+    //                             GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_READ | GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_WRITE);
 
-    // Identical IDs
-    ident2 = new GattCharacteristic(UUID("1d93c374-9239-11ea-bb37-0242ac130002").getBaseUUID(), 
-                                (uint8_t *)"b", 1, 4, 
-                                GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_READ | GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_WRITE);
+    // // Identical IDs
+    // ident2 = new GattCharacteristic(UUID("1d93c374-9239-11ea-bb37-0242ac130002").getBaseUUID(), 
+    //                             (uint8_t *)"b", 1, 4, 
+    //                             GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_READ | GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_WRITE);
 
     // Disconnect chars
     uint32_t disconnect = 0;
@@ -313,9 +320,9 @@ BLETestService::BLETestService(BLEDevice &_ble) :
                                     readLongUUIDChar,
                                     rwnChar, 
                                     rwrChar, 
-                                    // descChar,
-                                    ident1,
-                                    ident2,
+                                    descChar,
+                                    // ident1,
+                                    // ident2,
                                     discon, 
                                     reset, 
                                     authPermis, 
