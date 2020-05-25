@@ -61,6 +61,27 @@ private:
   void authorizeRead(GattReadAuthCallbackParams *readAuth);
   void authorizeWrite(GattWriteAuthCallbackParams *writeAuth);
   GattCharacteristic *authData;
+  GattCharacteristic *readShortChar;
+  GattCharacteristic *readPacketChar;
+  GattCharacteristic *readLongUUIDChar;
+  GattCharacteristic *rwnChar;   
+  GattCharacteristic *rwrChar;
+  GattCharacteristic *authPermis;
+  GattCharacteristic *ident1;
+  GattCharacteristic *ident2;
+  GattCharacteristic *discon;
+  GattCharacteristic *reset;
+
+  // GattAttribute  *ep;
+  // GattAttribute  *desc1;
+  // GattAttribute  *serv;
+  // GattAttribute  *desc2;
+  // GattAttribute  *misc;
+  // GattAttribute   *allDescs[5];
+  GattCharacteristic  *descChar;
+
+  GattService         *service;
+
 };
 
 

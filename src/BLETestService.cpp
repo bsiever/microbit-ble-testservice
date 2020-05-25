@@ -24,18 +24,20 @@ Wr = Write with response (ack if less than limit; Nack if over limit)
 N = Notifiable
 I = Indicatable
 
+
 | Props | Short desc | UUID | Long Description |
 |-------|------------|------|------------------|
 | R     |  Data Short    | 1d93b2f8-9239-11ea-bb37-0242ac130002 |  Contains ASCII digits 0-9: "0123456789"  (10 bytes) | 
 | R     |  Data Packet   | 1d93b488-9239-11ea-bb37-0242ac130002 | Contains 20 bytes:"abcdefghijklmnopqrst" (full BLE packet) |
 | R     |  Data Long     | 1d93b56e-9239-11ea-bb37-0242ac130002 | Contains 62 bytes: "abcdefghijklmnopqrstuvwzyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789" (multiple packets) |
-| RWn    | Short R/Wn Data  | 1d93b636-9239-11ea-bb37-0242ac130002 | For testing writes up to 80 bytes (readback to confirm)|
+| RWn    | Short R/Wn Data  | 1d93b636-9239-11ea-bb37-0242ac130002 | For testing writes up to 20 bytes (readback to confirm)|
 | RWr    | Short R/W Data  | 1d93b942-9239-11ea-bb37-0242ac130002 | For testing writes up to 80 bytes (readback to confirm) |
 | RWr    | Short R/W Data (identical ids)  | 1d93c374-9239-11ea-bb37-0242ac130002 | For testing writes up to 4 bytes (readback to confirm) |
 | RWr    | Short R/W Data (identical ids) | 1d93c374-9239-11ea-bb37-0242ac130002 | For testing writes up to 4 bytes (readback to confirm) |
 | RWr | Client Disconnect | 1d93c1e4-9239-11ea-bb37-0242ac130002 | Time (in ms) until client will disconnect intentionally |
 | RWr | Client Reset (hard disconnect) | 1d93c2c0-9239-11ea-bb37-0242ac130002| Time (in ms) until client will disconnect intentionally |
-
+| RW | Auth Permissions | 1d93b7c6-9239-11ea-bb37-0242ac130002 | 4 ASCII bytes; including an "R" allows Read and "W" allows write |
+| RaWa | Auth Data | 1d93b884-9239-11ea-bb37-0242ac130002 | Data for authorization test (8 bytes) |
 | RWr | Notifiable counter1 period | 1d93b6fe-9239-11ea-bb37-0242ac130002 | 4 byte value in ms indicating the period of updated to the notifications of counter 1; 500ms initially|
 | N | Notifiable counter1 | 1d93bb2c-9239-11ea-bb37-0242ac130002| 4 byte counter; Starts at 1 on enable and counts up |
 | RWr | Notifiable counter2 period | 1d93bbea-9239-11ea-bb37-0242ac130002 | 4 byte value in ms indicating the period of updated to the notifications of counter 1; 500ms initially|
@@ -46,12 +48,9 @@ I = Indicatable
 | N | Indicatable counter2 | 1d93bf82-9239-11ea-bb37-0242ac130002| 4 byte counter; Starts at 1 on enable and counts up |
 
 
-
 Todo:
 2nd test device for descriptors  & Auth read/write 
 | RWn    | Short R Data  |  1d93c432-9239-11ea-bb37-0242ac130002  | Only 1 byte of data ("-"); For testing Descriptors  ; |
-| RW | Auth Permissions | 1d93b7c6-9239-11ea-bb37-0242ac130002 | 4 ASCII bytes; including an "R" allows Read and "W" allows write |
-| RaWa | Auth Data | 1d93b884-9239-11ea-bb37-0242ac130002 | Data for authorization test (8 bytes) |
 Misc Advertising:
   Scan with name 
   Scan with UUID
@@ -208,56 +207,59 @@ BLETestService::BLETestService(BLEDevice &_ble) :
 
     UUID serviceUUID("1d93af38-9239-11ea-bb37-0242ac130002");
 
-    GattCharacteristic  readShortChar( UUID("1d93b2f8-9239-11ea-bb37-0242ac130002").getBaseUUID(), 
+    readShortChar = new GattCharacteristic( UUID("1d93b2f8-9239-11ea-bb37-0242ac130002").getBaseUUID(), 
                                             (uint8_t *)"0123456789", 10, 10, 
                                             GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_READ);
 
-    GattCharacteristic  readPacketChar( UUID("1d93b488-9239-11ea-bb37-0242ac130002").getBaseUUID(), 
+   readPacketChar = new  GattCharacteristic( UUID("1d93b488-9239-11ea-bb37-0242ac130002").getBaseUUID(), 
                                             (uint8_t *)"abcdefghijklmnopqrst", 20, 20, 
                                             GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_READ);
 
-    GattCharacteristic  readLongUUIDChar( UUID("1d93b56e-9239-11ea-bb37-0242ac130002").getBaseUUID(), 
+    readLongUUIDChar = new GattCharacteristic( UUID("1d93b56e-9239-11ea-bb37-0242ac130002").getBaseUUID(), 
                                             (uint8_t *)"abcdefghijklmnopqrstuvwzyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789", 62, 62, 
                                             GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_READ);
 
-    GattCharacteristic  rwnChar( UUID("1d93b636-9239-11ea-bb37-0242ac130002").getBaseUUID(), 
-                                              (uint8_t *)"-", 1, 80, 
+    rwnChar = new GattCharacteristic( UUID("1d93b636-9239-11ea-bb37-0242ac130002").getBaseUUID(), 
+                                              (uint8_t *)"-", 1, 20, 
                                               GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_READ | GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_WRITE_WITHOUT_RESPONSE);
 
-    GattCharacteristic rwrChar(UUID("1d93b942-9239-11ea-bb37-0242ac130002").getBaseUUID(), 
+    rwrChar = new GattCharacteristic( UUID("1d93b942-9239-11ea-bb37-0242ac130002").getBaseUUID(), 
                                               (uint8_t *)"-", 1, 80, 
                                               GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_READ | GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_WRITE);
 
     // // Include extended properties and designating the description to be writeable
     // uint16_t writeAux = 0x0002;
-    // GattAttribute  ep( BLE_UUID_DESCRIPTOR_CHAR_EXT_PROP, (uint8_t*)&writeAux, 2, 2); // 0x2900
+    // ep = new GattAttribute( BLE_UUID_DESCRIPTOR_CHAR_EXT_PROP, (uint8_t*)&writeAux, 2, 2); // 0x2900
 
     // // User Description 
-    // GattAttribute  desc1( BLE_UUID_DESCRIPTOR_CHAR_USER_DESC, (uint8_t*)"Test", 4, 20);
+    // desc1 = new GattAttribute( BLE_UUID_DESCRIPTOR_CHAR_USER_DESC, (uint8_t*)"Test", 4, 20);
 
     // // Server Config
     // uint16_t sval = 0;
-    // GattAttribute  serv( BLE_UUID_DESCRIPTOR_SERVER_CHAR_CONFIG, (uint8_t*)&sval, 2, 2);  // 0x2903
+    // serv = new GattAttribute( BLE_UUID_DESCRIPTOR_SERVER_CHAR_CONFIG, (uint8_t*)&sval, 2, 2);  // 0x2903
 
     // // Presentation format
     // // format, exponent, unit, namespace, desc  //2904
     // GattCharacteristic::PresentationFormat_t pres = { GattCharacteristic::BLE_GATT_FORMAT_SINT16, 3, GattCharacteristic::BLE_GATT_UNIT_AREA_SQUARE_METRES, 1, 0};
-    // GattAttribute  desc2( BLE_UUID_DESCRIPTOR_CHAR_PRESENTATION_FORMAT, (uint8_t*)&pres, sizeof(pres), sizeof(pres));
+    // desc2 = new GattAttribute( BLE_UUID_DESCRIPTOR_CHAR_PRESENTATION_FORMAT, (uint8_t*)&pres, sizeof(pres), sizeof(pres));
 
     // // Misc. special attribute
-    // GattAttribute  misc( UUID((UUID::ShortUUIDBytes_t)0x2929), (uint8_t*)&sval, 2, 2);  
+    // misc = new GattAttribute( UUID((UUID::ShortUUIDBytes_t)0x2929), (uint8_t*)&sval, 2, 2);  
 
-    // GattAttribute   *allDescs[] = { &ep, &desc1, &desc2, &serv, &misc};
+    // allDescs[0] = ep;
+    // allDescs[1] = desc1;
+    // allDescs[2] = desc2;
+    // allDescs[3] = serv;
+    // allDescs[4] = misc;
     // uint16_t value = 0x0004;
-    // GattCharacteristic  descChar( UUID("1d93c432-9239-11ea-bb37-0242ac130002").getBaseUUID(), 
-    //                                           (uint8_t*)&value, 2, 2, 
-    //                                           GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_READ | GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_BROADCAST,
-    //                                           allDescs, sizeof(allDescs)/sizeof(GattAttribute*));
+    descChar = new GattCharacteristic( UUID("1d93c432-9239-11ea-bb37-0242ac130002").getBaseUUID(), 
+                                              (uint8_t*)&value, 2, 2, 
+                                              GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_READ | GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_BROADCAST
+                                              );
+                                              // , allDescs, 5);
 
 
-    // TODO: Authorized writes ???
-
-    GattCharacteristic  authPermis( UUID("1d93b7c6-9239-11ea-bb37-0242ac130002").getBaseUUID(), 
+    authPermis = new GattCharacteristic( UUID("1d93b7c6-9239-11ea-bb37-0242ac130002").getBaseUUID(), 
                                                   (uint8_t *)"NONE", 4, 4, 
                                                   GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_READ | GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_WRITE);
 
@@ -271,25 +273,24 @@ BLETestService::BLETestService(BLEDevice &_ble) :
     authData->setReadAuthorizationCallback(this, &BLETestService::authorizeRead);
 
     // Identical IDs
-    GattCharacteristic ident1(UUID("1d93c374-9239-11ea-bb37-0242ac130002").getBaseUUID(), 
+    ident1 = new GattCharacteristic(UUID("1d93c374-9239-11ea-bb37-0242ac130002").getBaseUUID(), 
                                 (uint8_t *)"a", 1, 4, 
                                 GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_READ | GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_WRITE);
 
     // Identical IDs
-    GattCharacteristic ident2(UUID("1d93c374-9239-11ea-bb37-0242ac130002").getBaseUUID(), 
+    ident2 = new GattCharacteristic(UUID("1d93c374-9239-11ea-bb37-0242ac130002").getBaseUUID(), 
                                 (uint8_t *)"b", 1, 4, 
                                 GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_READ | GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_WRITE);
 
     // Disconnect chars
     uint32_t disconnect = 0;
-    GattCharacteristic discon(UUID("1d93c1e4-9239-11ea-bb37-0242ac130002").getBaseUUID(), 
+    discon = new GattCharacteristic(UUID("1d93c1e4-9239-11ea-bb37-0242ac130002").getBaseUUID(), 
                                 (uint8_t *)&disconnect, 4, 4, 
                                 GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_READ | GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_WRITE);
 
-    GattCharacteristic reset(UUID("1d93c2c0-9239-11ea-bb37-0242ac130002").getBaseUUID(), 
+    reset = new GattCharacteristic(UUID("1d93c2c0-9239-11ea-bb37-0242ac130002").getBaseUUID(), 
                                 (uint8_t *)&disconnect, 4, 4, 
                                 GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_READ | GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_WRITE);
-
 
 
     GattCharacteristic *timerPeriods[numTimers];
@@ -307,17 +308,17 @@ BLETestService::BLETestService(BLEDevice &_ble) :
     }    
 
     GattCharacteristic *characteristics[] = { 
-                                    // &readShortChar, 
-                                    // &readPacketChar, 
-                                    // &readLongUUIDChar,
-                                    &rwnChar, 
-                                    &rwrChar, 
-                                    // &descChar,
-                                    &ident1,
-                                    &ident2,
-                                    &discon, 
-                                    &reset, 
-                                    &authPermis, 
+                                    readShortChar, 
+                                    readPacketChar, 
+                                    readLongUUIDChar,
+                                    rwnChar, 
+                                    rwrChar, 
+                                    // descChar,
+                                    ident1,
+                                    ident2,
+                                    discon, 
+                                    reset, 
+                                    authPermis, 
                                     authData,
                                     timerPeriods[0], timers[0],
                                     timerPeriods[1], timers[1],
@@ -325,12 +326,12 @@ BLETestService::BLETestService(BLEDevice &_ble) :
                                     timerPeriods[3], timers[3],
                                     };
 
-    GattService         service(serviceUUID.getBaseUUID(), characteristics, sizeof(characteristics)/sizeof(GattCharacteristic *));
+    service = new GattService(serviceUUID.getBaseUUID(), characteristics, sizeof(characteristics)/sizeof(GattCharacteristic *));
   
     // Get updates on data writes
     ble.onDataWritten(this, &BLETestService::onDataWritten);
 
-    ble.addService(service);
+    ble.addService(*service);
 
     // AFTER adding to service handles are finalized....So get them
     // And delete mem no longer needed
@@ -340,14 +341,14 @@ BLETestService::BLETestService(BLEDevice &_ble) :
       timerLastUpdate[i] = 0;
       timerCounts[i] = 0;
       uBit.serial.printf("Timer %d: Value Handle: %x\n",i, timerPeriodHandles[i]);
-      delete timerPeriods[i];
+//      delete timerPeriods[i];
     }
-    disconnectHandle = discon.getValueHandle();
+    disconnectHandle = discon->getValueHandle();
     uBit.serial.printf("Disconnect handle: %X\n", disconnectHandle);
-    resetHandle = reset.getValueHandle();
+    resetHandle = reset->getValueHandle();
     uBit.serial.printf("Reset handle: %X\n", resetHandle);
-    authPermisHandle = authPermis.getValueHandle();
-    uBit.serial.printf("Auth Permis handle 2: %X\n", authPermisHandle);
+    authPermisHandle = authPermis->getValueHandle();
+    uBit.serial.printf("Auth Permis handle 6: %X\n", authPermisHandle);
 
 }
 

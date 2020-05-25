@@ -4,6 +4,8 @@ Micro:bit Bluetooth Test Service project for the micro:bit (and compiled on Plat
 
 The service can be used to test BLE libraries on different platforms.
 
+Be sure to use a recent version of the Micro:bit firmware (>=0253). See [https://microbit.org/get-started/user-guide/firmware/](https://microbit.org/get-started/user-guide/firmware/)
+
 # For Future Modifications
 
 * Update `lib/microbit-dal_ID360/source/bluetooth/MicroBitBLEManager.cpp` for
