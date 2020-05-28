@@ -20,8 +20,8 @@ Be sure to use a recent version of the Micro:bit firmware (>=0253). See [https:/
 | RWr | Client Reset (hard disconnect) | 1d93c2c0-9239-11ea-bb37-0242ac130002| Time (in ms) until client will disconnect intentionally |
 | RW | Auth Permissions | 1d93b7c6-9239-11ea-bb37-0242ac130002 | 4 ASCII bytes; including an "R" allows Read and "W" allows write |
 | RaWa | Auth Data | 1d93b884-9239-11ea-bb37-0242ac130002 | Data for authorization test (8 bytes) |
-| RWr | Notifiable counter1 period | 1d93b6fe-9239-11ea-bb37-0242ac130002 | 4 byte value in ms indicating the period of updated to the notifications of counter 1; 500ms initially|
 | RWn    | Short R Data  |  1d93c432-9239-11ea-bb37-0242ac130002  | Only 1 byte of data ("-"); For testing Descriptors  ; |
+| RWr | Notifiable counter1 period | 1d93b6fe-9239-11ea-bb37-0242ac130002 | 4 byte value in ms indicating the period of updated to the notifications of counter 1; 500ms initially|
 | N | Notifiable counter1 | 1d93bb2c-9239-11ea-bb37-0242ac130002| 4 byte counter; Starts at 1 on enable and counts up |
 | RWr | Notifiable counter2 period | 1d93bbea-9239-11ea-bb37-0242ac130002 | 4 byte value in ms indicating the period of updated to the notifications of counter 1; 500ms initially|
 | N | Notifiable counter2 | 1d93bc9e-9239-11ea-bb37-0242ac130002| 4 byte counter; Starts at 1 on enable and counts up |
@@ -54,6 +54,7 @@ Be sure to use a recent version of the Micro:bit firmware (>=0253). See [https:/
 # Misc. Notes
 
 * Platform IO Project 
+* Resulting Hex file is in `.pio/build/bbcmicrobit/firmware.hex`
 * Modified `lib/ble/UUID.h` for proper byte ordering in UUIDs for services (LSB first).  New constructor to allow either LSB or MSB depending on need. (Some BTLE stack things need one order while mbed things need another)
 * Modified `lib/microbit-dal_ID360/source/bluetooth/MicroBitBLEManager.cpp` to:
   * Change device name in GAP
@@ -62,5 +63,3 @@ Be sure to use a recent version of the Micro:bit firmware (>=0253). See [https:/
   * Currently requires older version of PlatformIO's nordicnrf51 library (3.0.1; newer versions seem to have compatibility problems, probably due to use of newer and incompatible mbed versions)
 * Added `src/BLETestService.cpp` and `src/BLETestService.h` for the test service.
 * `platformio.ini` specifies baud rate / etc.
-* UGHHH.  Some weird bug prevents the 2nd of a series of notify/indicates from notifying/indicating using the normal "update" to a characteristic, but an explicit call only to notify only if enabled seems to fix it. 
-* 
