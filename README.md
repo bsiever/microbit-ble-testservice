@@ -41,6 +41,8 @@ Be sure to use a recent version of the Micro:bit firmware (>=0253). See [https:/
 | N            | Notifiable |
 | I            | Indicatable |
 
+Writing a new timer period resets the count and starts the timer with the new period.  The count will increase to 1 at the end of the first period. Timer update frequency is about 50ms (i.e., setting time to less than 50ms will be essentially update every 50ms)
+
 # For Future Modifications
 
 * Update `lib/microbit-dal_ID360/source/bluetooth/MicroBitBLEManager.cpp` for

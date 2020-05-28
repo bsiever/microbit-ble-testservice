@@ -114,8 +114,8 @@ void BLETestService::_monitorFiber(void *service_) {
 
   // The actual fiber that monitors the service. 
   while(true) { 
-    uBit.serial.printf(".");
-    fiber_sleep(20);
+    // uBit.serial.printf(".");
+    fiber_sleep(50);
     // Check any running timers and update them
     uint32_t now = system_timer_current_time_us()/1000;
     // Check all timers
