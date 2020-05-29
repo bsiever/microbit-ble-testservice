@@ -20,7 +20,7 @@ Be sure to use a recent version of the Micro:bit firmware (>=0253). See [https:/
 | RWr | Client Reset (hard disconnect) | 1d93c2c0-9239-11ea-bb37-0242ac130002| Time (in ms) until client will disconnect intentionally |
 | RW | Auth Permissions | 1d93b7c6-9239-11ea-bb37-0242ac130002 | 4 ASCII bytes; including an "R" allows Read and "W" allows write |
 | RaWa | Auth Data | 1d93b884-9239-11ea-bb37-0242ac130002 | Data for authorization test (8 bytes) |
-| RWn    | Short R Data  |  1d93c432-9239-11ea-bb37-0242ac130002  | Only 1 byte of data ("-"); For testing Descriptors  ;  Includes writeable auxiliary, User description (the writeable auxiliary), Server  Config (also writeable), Presentation Format, and A special attribute (0x2929)|
+| RWn    | Short R Data  |  1d93c432-9239-11ea-bb37-0242ac130002  | Only 1 byte of data ("-"); For testing Descriptors  ;  Includes writeable auxiliary (0x2900==0002 (little endian, so 02 is first byte)), User description (the writeable auxiliary; "Test Test Test Test " initially 20 bytes), Server  Config (also writeable, initially 0), 2 bytes, Presentation Format (GattCharacteristic::BLE_GATT_FORMAT_SINT16, 3, GattCharacteristic::BLE_GATT_UNIT_AREA_SQUARE_METRES, 1, 0) = [0x0e, 0x03, 0x10, 0x27, 0x01, 0x00, 0x00], and A special attribute (0x2929 = 0 (2 bytes), little endian)|
 | RWr | Notifiable counter1 period | 1d93b6fe-9239-11ea-bb37-0242ac130002 | 4 byte value in ms indicating the period of updated to the notifications of counter 1; 500ms initially|
 | N | Notifiable counter1 | 1d93bb2c-9239-11ea-bb37-0242ac130002| 4 byte counter; Starts at 1 on enable and counts up |
 | RWr | Notifiable counter2 period | 1d93bbea-9239-11ea-bb37-0242ac130002 | 4 byte value in ms indicating the period of updated to the notifications of counter 1; 500ms initially|
@@ -42,6 +42,8 @@ Be sure to use a recent version of the Micro:bit firmware (>=0253). See [https:/
 | I            | Indicatable |
 
 Writing a new timer period resets the count and starts the timer with the new period.  The count will increase to 1 at the end of the first period. Timer update frequency is about 50ms (i.e., setting time to less than 50ms will be essentially update every 50ms)
+
+Numeric values should be little-endian
 
 # For Future Modifications
 

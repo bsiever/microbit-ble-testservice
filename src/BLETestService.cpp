@@ -240,7 +240,7 @@ BLETestService::BLETestService(BLEDevice &_ble) :
     ep = new GattAttribute( BLE_UUID_DESCRIPTOR_CHAR_EXT_PROP, (uint8_t*)&writeAux, 2, 2); // 0x2900
 
     // User Description 
-    desc1 = new GattAttribute( BLE_UUID_DESCRIPTOR_CHAR_USER_DESC, (uint8_t*)"Test", 4, 20);
+    desc1 = new GattAttribute( BLE_UUID_DESCRIPTOR_CHAR_USER_DESC, (uint8_t*)"Test Test Test Test ", 20, 20, true);
 
     // Server Config
     uint16_t sval = 0;
